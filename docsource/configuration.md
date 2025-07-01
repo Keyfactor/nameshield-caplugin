@@ -14,3 +14,8 @@ In order to enroll for certificates the Keyfactor Command server must trust the 
 ## Certificate Template Creation Step
 
 When defining templates, use the product names as the ProductID (e.g. Digicert Secure Site EV) as opposed to the ID (e.g. ABC012)
+
+## Requirements
+
+TODO Requirements is a required section
+
