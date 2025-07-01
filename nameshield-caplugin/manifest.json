@@ -1,0 +1,10 @@
+{
+  "extensions": {
+    "Keyfactor.AnyGateway.Extensions.IAnyCAPlugin": {
+      "NameshieldCAPlugin": {
+        "assemblypath": "NameshieldCAPlugin.dll",
+        "TypeFullName": "Keyfactor.Extensions.CAPlugin.Nameshield.NameshieldCAPlugin"
+      }
+    }
+  }
+}
