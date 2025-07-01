@@ -1,40 +1,41 @@
 {
-    "$schema": "https://keyfactor.github.io/integration-manifest-schema.json",
-    "integration_type": "anyca-plugin",
-    "name": "Nameshield AnyCA REST Gateway Plugin",
-    "status": "prototype",
-    "support_level": "community",
-    "link_github": false,
-    "update_catalog": false,
-    "description": "Nameshield plugin for the AnyCA REST Gateway framework",
-    "gateway_framework": "24.2.0",
-    "release_dir": "nameshield-caplugin/bin/Release/net6.0",
-    "about": {
-        "carest": {
-            "ca_plugin_config": [
-                {
-                    "name": "ApiUrl",
-                    "description": "The base URL to send API requests to. Standard URLs are https://api.nameshield.net/ for production environment, and https://ote-api.nameshield.net/ for test and development"
-                },
-                {
-                    "name": "ApiToken",
-                    "description": "The Bearer token to use to authenticate to the Nameshield API"
-                },
-                {
-                    "name": "Enabled",
-                    "description": "Flag to Enable or Disable gateway functionality. Diabling is primarily used to allow creation of the CA prior to configuration information being available."
-                }
-            ],
-            "enrollment_config": [
-                {
-                    "name": "OrganizationId",
-                    "description": "If you know your organization's ID in nameshield, you can supply that here and that will be used as the organization regardless of what values exist in the request or the Organization field"
-                },
-                {
-                    "name": "Organization",
-                    "description": "If OrganizationId is empty, and an organization name is provided here, the Nameshield gateway will use that name to do organization lookups when enrolling. If neither OrganizationId nor Organization is supplied, the gateway will use whatever is in the O= field of the request subject."
-                }
-            ]
+  "$schema": "https://keyfactor.github.io/integration-manifest-schema.json",
+  "integration_type": "anyca-plugin",
+  "name": "Nameshield AnyCA REST Gateway Plugin",
+  "status": "prototype",
+  "support_level": "community",
+  "link_github": false,
+  "update_catalog": false,
+  "description": "Nameshield plugin for the AnyCA REST Gateway framework",
+  "gateway_framework": "24.2.0",
+  "release_dir": "nameshield-caplugin/bin/Release",
+  "release_project": "nameshield-caplugin/nameshield-caplugin.csproj",
+  "about": {
+    "carest": {
+      "ca_plugin_config": [
+        {
+          "name": "ApiUrl",
+          "description": "The base URL to send API requests to. Standard URLs are https://api.nameshield.net/ for production environment, and https://ote-api.nameshield.net/ for test and development"
+        },
+        {
+          "name": "ApiToken",
+          "description": "The Bearer token to use to authenticate to the Nameshield API"
+        },
+        {
+          "name": "Enabled",
+          "description": "Flag to Enable or Disable gateway functionality. Diabling is primarily used to allow creation of the CA prior to configuration information being available."
         }
+      ],
+      "enrollment_config": [
+        {
+          "name": "OrganizationId",
+          "description": "If you know your organization's ID in nameshield, you can supply that here and that will be used as the organization regardless of what values exist in the request or the Organization field"
+        },
+        {
+          "name": "Organization",
+          "description": "If OrganizationId is empty, and an organization name is provided here, the Nameshield gateway will use that name to do organization lookups when enrolling. If neither OrganizationId nor Organization is supplied, the gateway will use whatever is in the O= field of the request subject."
+        }
+      ]
     }
+  }
 }
