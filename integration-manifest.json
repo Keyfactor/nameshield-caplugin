@@ -8,7 +8,7 @@
     "update_catalog": false,
     "description": "Nameshield plugin for the AnyCA REST Gateway framework",
     "gateway_framework": "24.2.0",
-    "release_dir": "nameshield-caplugin/bin/Release/net8.0",
+    "release_dir": "nameshield-caplugin/bin/Release/net6.0",
     "about": {
         "carest": {
             "ca_plugin_config": [
