@@ -8,11 +8,11 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{52DF2AE5-9590-42CF-A2A3-544214DE4809}"
 	ProjectSection(SolutionItems) = preProject
 		CHANGELOG.md = CHANGELOG.md
+		docsource\configuration.md = docsource\configuration.md
 		integration-manifest.json = integration-manifest.json
-		configuration.md = configuration.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nameshield-testbed", "nameshield-testbed\nameshield-testbed.csproj", "{6A22BA99-5C36-4CFE-B807-64CD27652F3C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "nameshield-testbed", "nameshield-testbed\nameshield-testbed.csproj", "{6A22BA99-5C36-4CFE-B807-64CD27652F3C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
