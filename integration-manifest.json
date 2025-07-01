@@ -1,12 +1,12 @@
 {
   "$schema": "https://keyfactor.github.io/integration-manifest-schema.json",
-  "integration_type": "ca-gateway",
-  "name": "<Gateway Name Here>",
+  "integration_type": "anyca-plugin",
+  "name": "Nameshield AnyCA REST Gateway Plugin",
   "status": "prototype",
   "support_level": "community",
   "link_github": false,
   "update_catalog": false,
-  "description": "<Description Here>",
-  "gateway_framework": "10.x.x",
-   "release_dir": "UPDATE-THIS-WITH-PATH-TO-BINARY-BUILD-FOLDER"
+  "description": "Nameshield plugin for the AnyCA REST Gateway framework",
+  "gateway_framework": "24.2.0",
+  "release_dir": "nameshield-caplugin/bin/Release/net8.0"
 }
