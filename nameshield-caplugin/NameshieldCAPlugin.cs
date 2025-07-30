@@ -105,11 +105,11 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			{
 				throw new Exception($"Certificate request for subect {subject} was rejected");
 			}
-			else if (!string.Equals(status, "handled", StringComparison.OrdinalIgnoreCase))
+			else if (!string.Equals(status, "delivered", StringComparison.OrdinalIgnoreCase))
 			{
 				return new EnrollmentResult
 				{
-					CARequestID = response.Order.Relationships.Certificate.Data.id,
+					CARequestID = response.Order.Id,
 					Status = (int)EndEntityStatus.EXTERNALVALIDATION,
 					StatusMessage = "Certificate is pending issuance and will be picked up by a future sync."
 				};
