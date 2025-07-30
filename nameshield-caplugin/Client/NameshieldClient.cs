@@ -41,8 +41,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving organizations: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error retrieving organizations: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
@@ -58,8 +58,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving product list: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error retrieving product list: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
@@ -75,8 +75,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving certificate list: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error retrieving certificate list: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
@@ -92,8 +92,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving certificate: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error retrieving certificate: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
@@ -109,8 +109,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving certificate product: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error retrieving certificate product: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
@@ -144,8 +144,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error revoking certificate: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error revoking certificate: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
