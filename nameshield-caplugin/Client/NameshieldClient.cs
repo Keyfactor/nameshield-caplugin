@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
@@ -115,7 +116,9 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 
 		public async Task<RequestCertificateResponse> RequestCertificate(CertificateRequest req)
 		{
-			var response = await RestClient.PostAsJsonAsync("ssl/v2/orders", req);
+			var body = req.GetOrderData();
+			var content = new StringContent(body.ToString(), Encoding.UTF8, "application/json");
+			var response = await RestClient.PostAsync("ssl/v2/orders", content);
 			if (response.IsSuccessStatusCode)
 			{
 				string responseContent = await response.Content.ReadAsStringAsync();
@@ -125,8 +128,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error requesting certificate: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error requesting certificate: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
