@@ -65,19 +65,35 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 
 		public async Task<ListCertificatesResponse> ListCertificates()
 		{
-			var response = await RestClient.GetAsync("ssl/v2/certificates?fields[certificate]=status,serial,pem");
-			if (response.IsSuccessStatusCode)
+			string url = "ssl/v2/certificates?fields[certificate]=status,serial,pem";
+			var response = await RestClient.GetAsync(url);
+			List<Certificate> certList = new List<Certificate>();
+			do
 			{
-				string responseContent = await response.Content.ReadAsStringAsync();
-				Logger.LogTrace($"GET Certificates response: {responseContent}");
-				var responseObj = JsonConvert.DeserializeObject<CertificatesData>(responseContent);
-				return new ListCertificatesResponse { Certificates = responseObj.Certificates };
-			}
-			else
-			{
-				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving certificate list: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
-			}
+				if (response.IsSuccessStatusCode)
+				{
+					string responseContent = await response.Content.ReadAsStringAsync();
+					Logger.LogTrace($"GET Certificates response: {responseContent}");
+					var responseObj = JsonConvert.DeserializeObject<CertificatesData>(responseContent);
+					certList.AddRange(responseObj.Certificates);
+					if (!string.IsNullOrEmpty(responseObj.Links.Next))
+					{
+						Uri uri = new Uri(responseObj.Links.Next);
+						url = uri.PathAndQuery.Substring(1); // remove the leading /
+						response = await RestClient.GetAsync(url);
+					}
+					else
+					{
+						url = null;
+					}
+				}
+				else
+				{
+					var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+					throw new Exception($"Error retrieving certificate list: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
+				}
+			} while (!string.IsNullOrEmpty(url));
+			return new ListCertificatesResponse { Certificates = certList };
 		}
 
 		public async Task<GetCertificateResponse> GetCertificate(string ID)

@@ -18,11 +18,22 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Models
 		public Certificate Certificate { get; set; }
 	}
 
+	public class LinkData
+	{
+		[JsonPropertyName("next")]
+		[JsonProperty("next")]
+		public string Next { get; set; }
+	}
+
 	public class CertificatesData
 	{
 		[JsonPropertyName("data")]
 		[JsonProperty("data")]
 		public List<Certificate> Certificates { get; set; }
+
+		[JsonPropertyName("links")]
+		[JsonProperty("links")]
+		public LinkData Links { get; set; }
 	}
 
 	public class Certificate
