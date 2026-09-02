@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,14 +38,17 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 
 		public async Task<EnrollmentResult> Enroll(string csr, string subject, Dictionary<string, string[]> san, EnrollmentProductInfo productInfo, RequestFormat requestFormat, EnrollmentType enrollmnentType)
 		{
+			_logger.MethodEntry(LogLevel.Debug);
 			NameshieldClient client = NameshieldClient.InitializeClient(_config);
 
 			var allProducts = Task.Run(async () => await client.ListProducts()).Result;
+			_logger.LogTrace($"Found {allProducts.Products.Count} products");
 			string productId = null;
 			foreach (var product in allProducts.Products)
 			{
 				if (string.Equals(product.Attributes.Name, productInfo.ProductID))
 				{
+					_logger.LogTrace($"Found {productInfo.ProductID} product, using ID {product.Id}");
 					productId = product.Id;
 					break;
 				}
@@ -58,6 +62,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			if (productInfo.ProductParameters.ContainsKey(Constants.Config.Template.ORGANIZATION_ID) && !string.IsNullOrEmpty(productInfo.ProductParameters[Constants.Config.Template.ORGANIZATION_ID]))
 			{
 				orgId = productInfo.ProductParameters[Constants.Config.Template.ORGANIZATION_ID];
+				_logger.LogTrace($"Using organization ID {orgId}");
 			}
 
 			if (string.IsNullOrEmpty(orgId))
@@ -72,10 +77,12 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 					orgName = ParseSubject(subject, "O=");
 				}
 				var organizations = Task.Run(async () => await client.ListOrganizations()).Result;
+				_logger.LogTrace($"Found {organizations.Organizations.Count} organizations");
 				foreach (var organization in organizations.Organizations)
 				{
 					if (string.Equals(organization.Attributes.Name, orgName, StringComparison.OrdinalIgnoreCase))
 					{
+						_logger.LogTrace($"Found organization with name {orgName}, using ID {organization.Id}");
 						orgId = organization.Id;
 						break;
 					}
@@ -105,8 +112,20 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			{
 				throw new Exception($"Certificate request for subect {subject} was rejected");
 			}
-			else if (!string.Equals(status, "delivered", StringComparison.OrdinalIgnoreCase))
+			int time = 0;
+			while (string.Equals(status, "checked_out", StringComparison.OrdinalIgnoreCase) && time < 8)
 			{
+				_logger.LogTrace($"Cert retured CHECKED_OUT status, rechecking in 5 seconds. Pickup attempt {time} of 8");
+				// Sleep for 5 seconds then try again, up to a max of 8 tries
+				Thread.Sleep(5000);
+				time++;
+				response = Task.Run(async () => await client.GetOrderDetails(response.Order.Id)).Result;
+				status = response.Order.Attributes.Status;
+			}
+
+			if (!string.Equals(status, "delivered", StringComparison.OrdinalIgnoreCase))
+			{
+				_logger.LogTrace($"Cert request submitted successfully but not delivered, will be picked up by a fugure sync once it is issued.");
 				return new EnrollmentResult
 				{
 					CARequestID = response.Order.Id,
