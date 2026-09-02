@@ -149,6 +149,23 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 		}
 
+		public async Task<RequestCertificateResponse> GetOrderDetails(string reqId)
+		{
+			var response = await RestClient.GetAsync($"ssl/v2/orders/{reqId}");
+			if (response.IsSuccessStatusCode)
+			{
+				string responseContent = await response.Content.ReadAsStringAsync();
+				Logger.LogTrace($"GET Order Details response: {responseContent}");
+				var responseObj = JsonConvert.DeserializeObject<OrderData>(responseContent);
+				return new RequestCertificateResponse { Order = responseObj.Order };
+			}
+			else
+			{
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error pulling order details: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
+			}
+		}
+
 		public async Task<bool> RevokeCertificate(string serialNum)
 		{
 			var response = await RestClient.PostAsync($"ssl/v2/certificates/{serialNum}/revoke", null);
