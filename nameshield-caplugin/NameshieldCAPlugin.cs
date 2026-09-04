@@ -112,11 +112,11 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			{
 				throw new Exception($"Certificate request for subect {subject} was rejected");
 			}
-			int time = 0;
-			while (string.Equals(status, "checked_out", StringComparison.OrdinalIgnoreCase) && time < 8)
+			int time = 1;
+			while (string.Equals(status, "checked_out", StringComparison.OrdinalIgnoreCase) && time <= 10)
 			{
-				_logger.LogTrace($"Cert retured CHECKED_OUT status, rechecking in 5 seconds. Pickup attempt {time} of 8");
-				// Sleep for 5 seconds then try again, up to a max of 8 tries
+				_logger.LogTrace($"Cert retured CHECKED_OUT status, rechecking in 5 seconds. Pickup attempt {time} of 10");
+				// Sleep for 5 seconds then try again, up to a max of 10 tries
 				Thread.Sleep(5000);
 				time++;
 				response = Task.Run(async () => await client.GetOrderDetails(response.Order.Id)).Result;
@@ -133,6 +133,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 					StatusMessage = "Certificate is pending issuance and will be picked up by a future sync."
 				};
 			}
+			_logger.LogTrace($"Certificate enrolled successfully");
 
 			var cert = GetSingleRecord(response.Order.Relationships.Certificate.Data.id).Result;
 
