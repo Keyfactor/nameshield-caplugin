@@ -1,5 +1,5 @@
 <h1 align="center" style="border-bottom: none">
-    Nameshield   Gateway AnyCA Gateway REST Plugin
+    Nameshield AnyCA Gateway REST Plugin
 </h1>
 
 <p align="center">
@@ -43,10 +43,10 @@ The Nameshield AnyCA Gateway REST plugin extends the capabilities of Nameshield 
 
 ## Compatibility
 
-The Nameshield   Gateway AnyCA Gateway REST plugin is compatible with the Keyfactor AnyCA Gateway REST 24.2.0 and later.
+The Nameshield AnyCA Gateway REST plugin is compatible with the Keyfactor AnyCA Gateway REST 24.2.0 and later.
 
 ## Support
-The Nameshield   Gateway AnyCA Gateway REST plugin is open source and community supported, meaning that there is **no SLA** applicable. 
+The Nameshield AnyCA Gateway REST plugin is open source and community supported, meaning that there is **no SLA** applicable. 
 
 > To report a problem or suggest a new feature, use the **[Issues](../../issues)** tab. If you want to contribute actual bug fixes or proposed enhancements, use the **[Pull requests](../../pulls)** tab.
 
@@ -58,19 +58,22 @@ TODO Requirements is a required section
 
 1. Install the AnyCA Gateway REST per the [official Keyfactor documentation](https://software.keyfactor.com/Guides/AnyCAGatewayREST/Content/AnyCAGatewayREST/InstallIntroduction.htm).
 
-2. On the server hosting the AnyCA Gateway REST, download and unzip the latest [Nameshield   Gateway AnyCA Gateway REST plugin](https://github.com/Keyfactor/nameshield-caplugin/releases/latest) from GitHub.
+2. On the server hosting the AnyCA Gateway REST, download and unzip the latest [Nameshield AnyCA Gateway REST plugin](https://github.com/Keyfactor/nameshield-caplugin/releases/latest) from GitHub.
 
-3. Copy the unzipped directory (usually called `net6.0`) to the Extensions directory:
+3. Copy the unzipped directory (usually called `net6.0` or `net8.0`) to the Extensions directory:
+
 
     ```shell
+    Depending on your AnyCA Gateway REST version, copy the unzipped directory to one of the following locations:
     Program Files\Keyfactor\AnyCA Gateway\AnyGatewayREST\net6.0\Extensions
+    Program Files\Keyfactor\AnyCA Gateway\AnyGatewayREST\net8.0\Extensions
     ```
 
-    > The directory containing the Nameshield   Gateway AnyCA Gateway REST plugin DLLs (`net6.0`) can be named anything, as long as it is unique within the `Extensions` directory.
+    > The directory containing the Nameshield AnyCA Gateway REST plugin DLLs (`net6.0` or `net8.0`) can be named anything, as long as it is unique within the `Extensions` directory.
 
 4. Restart the AnyCA Gateway REST service.
 
-5. Navigate to the AnyCA Gateway REST portal and verify that the Gateway recognizes the Nameshield   Gateway plugin by hovering over the ⓘ symbol to the right of the Gateway on the top left of the portal.
+5. Navigate to the AnyCA Gateway REST portal and verify that the Gateway recognizes the Nameshield plugin by hovering over the ⓘ symbol to the right of the Gateway on the top left of the portal.
 
 ## Configuration
 

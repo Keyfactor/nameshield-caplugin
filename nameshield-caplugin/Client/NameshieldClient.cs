@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
@@ -40,8 +41,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving organizations: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error retrieving organizations: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
@@ -57,26 +58,42 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving product list: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error retrieving product list: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
 		public async Task<ListCertificatesResponse> ListCertificates()
 		{
-			var response = await RestClient.GetAsync("ssl/v2/certificates?fields[certificate]=status,serial,pem");
-			if (response.IsSuccessStatusCode)
+			string url = "ssl/v2/certificates?fields[certificate]=status,serial,pem";
+			var response = await RestClient.GetAsync(url);
+			List<Certificate> certList = new List<Certificate>();
+			do
 			{
-				string responseContent = await response.Content.ReadAsStringAsync();
-				Logger.LogTrace($"GET Certificates response: {responseContent}");
-				var responseObj = JsonConvert.DeserializeObject<CertificatesData>(responseContent);
-				return new ListCertificatesResponse { Certificates = responseObj.Certificates };
-			}
-			else
-			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving certificate list: {error.Error.Code} | {error.Error.Message}");
-			}
+				if (response.IsSuccessStatusCode)
+				{
+					string responseContent = await response.Content.ReadAsStringAsync();
+					Logger.LogTrace($"GET Certificates response: {responseContent}");
+					var responseObj = JsonConvert.DeserializeObject<CertificatesData>(responseContent);
+					certList.AddRange(responseObj.Certificates);
+					if (!string.IsNullOrEmpty(responseObj.Links.Next))
+					{
+						Uri uri = new Uri(responseObj.Links.Next);
+						url = uri.PathAndQuery.Substring(1); // remove the leading /
+						response = await RestClient.GetAsync(url);
+					}
+					else
+					{
+						url = null;
+					}
+				}
+				else
+				{
+					var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+					throw new Exception($"Error retrieving certificate list: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
+				}
+			} while (!string.IsNullOrEmpty(url));
+			return new ListCertificatesResponse { Certificates = certList };
 		}
 
 		public async Task<GetCertificateResponse> GetCertificate(string ID)
@@ -91,8 +108,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving certificate: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error retrieving certificate: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
@@ -108,14 +125,16 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error retrieving certificate product: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error retrieving certificate product: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
 		public async Task<RequestCertificateResponse> RequestCertificate(CertificateRequest req)
 		{
-			var response = await RestClient.PostAsJsonAsync("ssl/v2/orders", req);
+			var body = req.GetOrderData();
+			var content = new StringContent(body.ToString(), Encoding.UTF8, "application/json");
+			var response = await RestClient.PostAsync("ssl/v2/orders", content);
 			if (response.IsSuccessStatusCode)
 			{
 				string responseContent = await response.Content.ReadAsStringAsync();
@@ -125,8 +144,25 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error requesting certificate: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error requesting certificate: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
+			}
+		}
+
+		public async Task<RequestCertificateResponse> GetOrderDetails(string reqId)
+		{
+			var response = await RestClient.GetAsync($"ssl/v2/orders/{reqId}");
+			if (response.IsSuccessStatusCode)
+			{
+				string responseContent = await response.Content.ReadAsStringAsync();
+				Logger.LogTrace($"GET Order Details response: {responseContent}");
+				var responseObj = JsonConvert.DeserializeObject<OrderData>(responseContent);
+				return new RequestCertificateResponse { Order = responseObj.Order };
+			}
+			else
+			{
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error pulling order details: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
@@ -141,8 +177,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
-				throw new Exception($"Error revoking certificate: {error.Error.Code} | {error.Error.Message}");
+				var errors = JsonConvert.DeserializeObject<ErrorData>(await response.Content.ReadAsStringAsync());
+				throw new Exception($"Error revoking certificate: {errors.Errors[0].Title} | {errors.Errors[0].Detail}");
 			}
 		}
 
