@@ -115,7 +115,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			int time = 1;
 			while (string.Equals(status, "checked_out", StringComparison.OrdinalIgnoreCase) && time <= 10)
 			{
-				_logger.LogTrace($"Cert retured CHECKED_OUT status, rechecking in 5 seconds. Pickup attempt {time} of 10");
+				_logger.LogTrace($"Cert request returned CHECKED_OUT status, rechecking in 5 seconds. Pickup attempt {time} of 10");
 				// Sleep for 5 seconds then try again, up to a max of 10 tries
 				Thread.Sleep(5000);
 				time++;
