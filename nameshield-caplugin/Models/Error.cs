@@ -4,20 +4,27 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Keyfactor.Extensions.CAPlugin.Nameshield.Models
 {
 	public class ErrorData
 	{
+		[JsonPropertyName("errors")]
 		[JsonProperty("errors")]
-		public Error Error { get; set; }
+		public List<Error> Errors { get; set; }
 	}
 	public class Error
 	{
-		[JsonProperty("code")]
-		public string Code { get; set; }
-		[JsonProperty("message")]
-		public string Message { get; set; }
+		[JsonPropertyName("status")]
+		[JsonProperty("status")]
+		public string Status { get; set; }
+		[JsonPropertyName("title")]
+		[JsonProperty("title")]
+		public string Title { get; set; }
+		[JsonPropertyName("detail")]
+		[JsonProperty("detail")]
+		public string Detail { get; set; }
 	}
 }
