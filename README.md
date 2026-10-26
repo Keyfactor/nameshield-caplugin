@@ -95,11 +95,9 @@ TODO Requirements is a required section
 
 4. In Keyfactor Command (v12.3+), for each imported Certificate Template, follow the [official documentation](https://software.keyfactor.com/Core-OnPrem/Current/Content/ReferenceGuide/Configuring%20Template%20Options.htm) to define enrollment fields for each of the following parameters:
 
-    * **OrganizationId** - If you know your organization's ID in nameshield, you can supply that here and that will be used as the organization regardless of what values exist in the request or the Organization field 
-    * **Organization** - If OrganizationId is empty, and an organization name is provided here, the Nameshield gateway will use that name to do organization lookups when enrolling. If neither OrganizationId nor Organization is supplied, the gateway will use whatever is in the O= field of the request subject. 
-    * **Lifetime** - REQUIRED:The lifetime of the certificate to be issued. This should be a string in the format recognized by Nameshield (e.g. 1 year, etc.) 
-
-
+    * **OrganizationId** - If you know your organization's ID in nameshield, you can supply that here and that will be used as the organization regardless of what values exist in the request or the Organization field
+    * **Organization** - If OrganizationId is empty, and an organization name is provided here, the Nameshield gateway will use that name to do organization lookups when enrolling. If neither OrganizationId nor Organization is supplied, the gateway will use whatever is in the O= field of the request subject.
+    * **Lifetime** - REQUIRED:The lifetime of the certificate to be issued. This should be a string in the format recognized by Nameshield (e.g. 1 year, etc.)
 
 ## License
 
