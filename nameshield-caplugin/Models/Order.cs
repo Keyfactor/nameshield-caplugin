@@ -36,6 +36,9 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Models
 		[JsonPropertyName("status")]
 		[JsonProperty("status")]
 		public string Status { get; set; }
+		[JsonPropertyName("can_renew_at")]
+		[JsonProperty("can_renew_at")]
+		public string CanRenewAt { get; set; }
 	}
 
 	public class OrderRelationships

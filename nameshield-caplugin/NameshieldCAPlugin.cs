@@ -37,7 +37,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			_config = JsonConvert.DeserializeObject<NameshieldConfig>(rawConfig);
 		}
 
-		public async Task<EnrollmentResult> Enroll(string csr, string subject, Dictionary<string, string[]> san, EnrollmentProductInfo productInfo, RequestFormat requestFormat, EnrollmentType enrollmnentType)
+		public async Task<EnrollmentResult> Enroll(string csr, string subject, Dictionary<string, string[]> san, EnrollmentProductInfo productInfo, RequestFormat requestFormat, EnrollmentType enrollmentType)
 		{
 			_logger.MethodEntry(LogLevel.Debug);
 			NameshieldClient client = NameshieldClient.InitializeClient(_config);
@@ -96,9 +96,38 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			}
 			var lifetime = productInfo.ProductParameters[Constants.Config.Template.LIFETIME];
 
+			string orderAction = "create";
+
+			// Determine if we should do a renew or a reissue
+			if (enrollmentType == EnrollmentType.RenewOrReissue)
+			{
+				string priorCertSnString = productInfo.ProductParameters["PriorCertSN"];
+				var priorCertReqID = await _certificateDataReader.GetRequestIDBySerialNumber(priorCertSnString);
+				if (string.IsNullOrEmpty(priorCertReqID))
+				{
+					throw new Exception($"Cannot find prior certificate with serial number {priorCertSnString}.");
+				}
+
+				string orderId = priorCertReqID.Split('-')[0];
+
+				var orderResponse = Task.Run(async () => await client.GetOrderDetails(orderId)).Result;
+				if (orderResponse.Order.Attributes.CanRenewAt != null)
+				{
+					DateTime canRenewDT = DateTime.Parse(orderResponse.Order.Attributes.CanRenewAt);
+					if (canRenewDT < DateTime.UtcNow)
+					{
+						orderAction = "renew";
+					}
+					else
+					{
+						orderAction = "reissue";
+					}
+				}
+			}
+
 			CertificateRequest request = new CertificateRequest();
 			request.data.type = "order";
-			request.data.attributes.action = "create";
+			request.data.attributes.action = orderAction;
 			request.data.attributes.csr = csr;
 			request.data.attributes.duration = lifetime;
 			request.data.relationships.product.data.type = "product";
@@ -137,7 +166,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			}
 			_logger.LogTrace($"Certificate enrolled successfully");
 
-			var cert = GetSingleRecord(response.Order.Relationships.Certificate.Data.id).Result;
+			var cert = GetSingleRecord($"{response.Order.Id}-{response.Order.Relationships.Certificate.Data.id}").Result;
 
 			return new EnrollmentResult
 			{
