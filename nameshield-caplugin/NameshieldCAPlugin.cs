@@ -127,13 +127,46 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 
 			CertificateRequest request = new CertificateRequest();
 			request.data.type = "order";
-			request.data.attributes.action = orderAction;
+			
 			request.data.attributes.csr = csr;
 			request.data.attributes.duration = lifetime;
 			request.data.relationships.product.data.type = "product";
 			request.data.relationships.product.data.id = productId;
 			request.data.relationships.organization.data.type = "organization";
 			request.data.relationships.organization.data.id = orgId;
+
+			string orderAction = "create";
+			// Determine if we should do a renew or a reissue
+			if (enrollmentType == EnrollmentType.RenewOrReissue)
+			{
+				string priorCertSnString = productInfo.ProductParameters["PriorCertSN"];
+				var priorCertReqID = await _certificateDataReader.GetRequestIDBySerialNumber(priorCertSnString);
+				if (string.IsNullOrEmpty(priorCertReqID))
+				{
+					throw new Exception($"Cannot find prior certificate with serial number {priorCertSnString}.");
+				}
+
+				string orderId = priorCertReqID.Split('-')[0];
+
+				var orderResponse = Task.Run(async () => await client.GetOrderDetails(orderId)).Result;
+				if (orderResponse.Order.Attributes.CanRenewAt != null)
+				{
+					DateTime canRenewDT = DateTime.Parse(orderResponse.Order.Attributes.CanRenewAt);
+					if (canRenewDT < DateTime.UtcNow)
+					{
+						orderAction = "renew";
+					}
+					else
+					{
+						orderAction = "reissue";
+					}
+				}
+
+				request.data.relationships.certificate.data.type = "certificate";
+				request.data.relationships.certificate.data.id = priorCertReqID.Split('-')[1];
+			}
+
+			request.data.attributes.action = orderAction;
 
 			var response = Task.Run(async () => await client.RequestCertificate(request)).Result;
 
