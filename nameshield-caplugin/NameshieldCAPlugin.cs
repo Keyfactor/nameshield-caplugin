@@ -1,6 +1,7 @@
 ﻿using Keyfactor.AnyGateway.Extensions;
 using Keyfactor.Extensions.CAPlugin.Nameshield.API;
 using Keyfactor.Extensions.CAPlugin.Nameshield.Client;
+using Keyfactor.Extensions.CAPlugin.Nameshield.Models;
 using Keyfactor.Logging;
 using Keyfactor.PKI.Enums.EJBCA;
 
@@ -93,12 +94,13 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			{
 				throw new Exception($"No organization provided in attributes or subject that matches an organization in the Nameshield account");
 			}
+			var lifetime = productInfo.ProductParameters[Constants.Config.Template.LIFETIME];
 
 			CertificateRequest request = new CertificateRequest();
 			request.data.type = "order";
 			request.data.attributes.action = "create";
 			request.data.attributes.csr = csr;
-			request.data.attributes.duration = "1 year";
+			request.data.attributes.duration = lifetime;
 			request.data.relationships.product.data.type = "product";
 			request.data.relationships.product.data.id = productId;
 			request.data.relationships.organization.data.type = "organization";
@@ -224,6 +226,13 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 					Hidden = false,
 					DefaultValue = "",
 					Type = "String"
+				},
+				[Constants.Config.Template.LIFETIME] = new PropertyConfigInfo()
+				{
+					Comments = "REQUIRED:The lifetime of the certificate to be issued. This should be a string in the format recognized by Nameshield (e.g. 1 year, etc.)",
+					Hidden = false,
+					DefaultValue = "1 year",
+					Type = "String"
 				}
 			};
 		}
@@ -310,19 +319,38 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 
 			var productList = Task.Run(async () => await localClient.ListProducts()).Result;
 
-			bool foundProduct = false;
+			Product foundProduct = null;
 			foreach (var product in productList.Products)
 			{
 				if (string.Equals(product.Attributes.Name, productInfo.ProductID, StringComparison.OrdinalIgnoreCase))
 				{
-					foundProduct = true;
+					foundProduct = product;
 					break;
 				}
 			}
 
-			if (!foundProduct)
+			if (foundProduct == null)
 			{
 				throw new Exception($"Product ID {productInfo.ProductID} was not found in the list of valid products.");
+			}
+			string lifetime = productInfo.ProductParameters[Constants.Config.Template.LIFETIME];
+			if (string.IsNullOrEmpty(lifetime))
+			{
+				throw new Exception($"Product ID {productInfo.ProductID} is missing a required lifetime value");
+			}
+
+			bool allowedDuration = false;
+			foreach (var duration in foundProduct.Attributes.Durations)
+			{
+				if (string.Equals(duration, lifetime, StringComparison.OrdinalIgnoreCase))
+				{
+					allowedDuration = true;
+					break;
+				}
+			}
+			if (!allowedDuration)
+			{
+				throw new Exception($"Product ID {productInfo.ProductID} has an invalid lifetime value {lifetime}. Valid values for this product are: {string.Join(',', foundProduct.Attributes.Durations)}");
 			}
 		}
 
