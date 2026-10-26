@@ -28,6 +28,8 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.API
 			data.relationships.product.data = new RelationshipData();
 			data.relationships.organization = new CertRequestRel();
 			data.relationships.organization.data = new RelationshipData();
+			data.relationships.certificate = new CertRequestRel();
+			data.relationships.certificate.data = new RelationshipData();
 		}
 
 		public string GetOrderData()
@@ -81,6 +83,9 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.API
 		[JsonPropertyName("organization")]
 		[JsonProperty("organization")]
 		public CertRequestRel organization { get; set; }
+		[JsonPropertyName("certificate")]
+		[JsonProperty("certificate")]
+		public CertRequestRel certificate { get; set; }
 	}
 
 	public class CertRequestRel

@@ -96,8 +96,17 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			}
 			var lifetime = productInfo.ProductParameters[Constants.Config.Template.LIFETIME];
 
-			string orderAction = "create";
+			CertificateRequest request = new CertificateRequest();
+			request.data.type = "order";
+			
+			request.data.attributes.csr = csr;
+			request.data.attributes.duration = lifetime;
+			request.data.relationships.product.data.type = "product";
+			request.data.relationships.product.data.id = productId;
+			request.data.relationships.organization.data.type = "organization";
+			request.data.relationships.organization.data.id = orgId;
 
+			string orderAction = "create";
 			// Determine if we should do a renew or a reissue
 			if (enrollmentType == EnrollmentType.RenewOrReissue)
 			{
@@ -123,17 +132,12 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 						orderAction = "reissue";
 					}
 				}
+
+				request.data.relationships.certificate.data.type = "certificate";
+				request.data.relationships.certificate.data.id = priorCertReqID.Split('-')[1];
 			}
 
-			CertificateRequest request = new CertificateRequest();
-			request.data.type = "order";
 			request.data.attributes.action = orderAction;
-			request.data.attributes.csr = csr;
-			request.data.attributes.duration = lifetime;
-			request.data.relationships.product.data.type = "product";
-			request.data.relationships.product.data.id = productId;
-			request.data.relationships.organization.data.type = "organization";
-			request.data.relationships.organization.data.id = orgId;
 
 			var response = Task.Run(async () => await client.RequestCertificate(request)).Result;
 
