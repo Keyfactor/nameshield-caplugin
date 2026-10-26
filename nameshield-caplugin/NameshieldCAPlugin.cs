@@ -166,11 +166,12 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			}
 			_logger.LogTrace($"Certificate enrolled successfully");
 
-			var cert = GetSingleRecord($"{response.Order.Id}-{response.Order.Relationships.Certificate.Data.id}").Result;
-
+			var reqId = $"{response.Order.Id}-{response.Order.Relationships.Certificate.Data.id}";
+			var cert = GetSingleRecord(reqId).Result;
+			
 			return new EnrollmentResult
 			{
-				CARequestID = cert.CARequestID,
+				CARequestID = reqId,
 				Certificate = cert.Certificate,
 				Status = cert.Status,
 				StatusMessage = $"Successfully enrolled for certificate {subject}"
@@ -222,11 +223,17 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 		public async Task<AnyCAPluginCertificate> GetSingleRecord(string caRequestID)
 		{
 			NameshieldClient client = NameshieldClient.InitializeClient(_config);
+			var idParts = caRequestID.Split('-').ToList();
+			if (idParts.Count == 1)
+			{
+				_logger.LogWarning($"Order {caRequestID} is still awaiting delivery.");
+				throw new Exception($"Unable to retrieve certificate for order {caRequestID} as it is still awaiting delivery. The certificate will be picked up by a future sync once it is issued.");
+			}
+			string certId = idParts[1];
+			var cert = Task.Run(async () => await client.GetCertificate(certId)).Result;
+			var certProduct = Task.Run(async () => await client.GetCertificateProduct(certId)).Result;
 
-			var cert = Task.Run(async () => await client.GetCertificate(caRequestID)).Result;
-			var certProduct = Task.Run(async () => await client.GetCertificateProduct(caRequestID)).Result;
-
-			int status = ConvertToKeyfactorStatus(cert.Certificate.Attributes.Status, caRequestID);
+			int status = ConvertToKeyfactorStatus(cert.Certificate.Attributes.Status, certId);
 
 			return new AnyCAPluginCertificate()
 			{
@@ -309,11 +316,13 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 
 			foreach (var cert in certs.Certificates)
 			{
+				var certObj = Task.Run(async () => await client.GetCertificate(cert.Id)).Result;
 				var certProduct = Task.Run(async () => await client.GetCertificateProduct(cert.Id)).Result;
 				int status = ConvertToKeyfactorStatus(cert.Attributes.Status, cert.Id);
 				var newCert = new AnyCAPluginCertificate()
 				{
-					CARequestID = cert.Id,
+					CARequestID = $"{certObj.Certificate.Relationships.Order.Data.id}-{cert.Id}",
+					OldCARequestID = certObj.Certificate.Relationships.Order.Data.id,
 					ProductID = certProduct.CertificateProduct.Attributes.Name,
 					Status = status,
 					Certificate = cert.Attributes.Pem,
@@ -393,7 +402,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			return string.Empty;
 		}
 
-		private static int ConvertToKeyfactorStatus(string status, string sslId)
+		private static int ConvertToKeyfactorStatus(string status, string certId)
 		{
 			switch (status.ToUpper())
 			{
@@ -410,7 +419,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 					return (int)EndEntityStatus.REVOKED;
 
 				default:
-					throw new Exception($"Request ID {sslId} has unknown status {status}");
+					throw new Exception($"Request ID {certId} has unknown status {status}");
 			}
 		}
 
