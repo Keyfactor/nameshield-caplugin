@@ -2,7 +2,7 @@
     "$schema": "https://keyfactor.github.io/integration-manifest-schema.json",
     "integration_type": "anyca-plugin",
     "name": "Nameshield AnyCA REST Gateway Plugin",
-    "support_level": "keyfactor",
+    "support_level": "kf-supported",
     "status": "prototype",
     "link_github": true,
     "update_catalog": true,
