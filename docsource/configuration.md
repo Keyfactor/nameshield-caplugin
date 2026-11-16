@@ -17,5 +17,5 @@ When defining templates, use the product names as the ProductID (e.g. Digicert S
 
 ## Requirements
 
-TODO Requirements is a required section
+
 
