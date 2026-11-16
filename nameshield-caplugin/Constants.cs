@@ -20,6 +20,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			{
 				public const string ORGANIZATION_ID = "OrganizationId";
 				public const string ORGANIZATION = "Organization";
+				public const string LIFETIME = "Lifetime";
 			}
 		}
 	}

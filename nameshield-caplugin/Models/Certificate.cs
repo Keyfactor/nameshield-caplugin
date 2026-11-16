@@ -44,6 +44,9 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Models
 		[JsonPropertyName("attributes")]
 		[JsonProperty("attributes")]
 		public CertificateAttributes Attributes { get; set; }
+		[JsonPropertyName("relationships")]
+		[JsonProperty("relationships")]
+		public CertificateRelationships Relationships { get; set; }
 	}
 
 	public class CertificateAttributes
@@ -59,5 +62,19 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Models
 		[JsonPropertyName("pem")]
 		[JsonProperty("pem")]
 		public string Pem { get; set; }
+	}
+
+	public class CertificateRelationships
+	{
+		[JsonPropertyName("current-order")]
+		[JsonProperty("current-order")]
+		public CertOrderRelationship Order { get; set; }
+	}
+
+	public class CertOrderRelationship
+	{
+		[JsonPropertyName("data")]
+		[JsonProperty("data")]
+		public RelationshipData Data { get; set; }
 	}
 }
