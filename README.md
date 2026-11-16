@@ -59,15 +59,16 @@ TODO Requirements is a required section
 
 2. On the server hosting the AnyCA Gateway REST, download and unzip the latest [Nameshield AnyCA Gateway REST plugin](https://github.com/Keyfactor/nameshield-caplugin/releases/latest) from GitHub.
 
-3. Copy the unzipped directory (usually called `net6.0`) to the Extensions directory:
+3. Copy the unzipped directory (usually called `net8.0` or `net10.0`) to the Extensions directory:
 
 
     ```shell
     Depending on your AnyCA Gateway REST version, copy the unzipped directory to one of the following locations:
-    Program Files\Keyfactor\AnyCA Gateway\AnyGatewayREST\net6.0\Extensions
+    Program Files\Keyfactor\AnyCA Gateway\AnyGatewayREST\net8.0\Extensions
+    Program Files\Keyfactor\AnyCA Gateway\AnyGatewayREST\net10.0\Extensions
     ```
 
-    > The directory containing the Nameshield AnyCA Gateway REST plugin DLLs (`net6.0`) can be named anything, as long as it is unique within the `Extensions` directory.
+    > The directory containing the Nameshield AnyCA Gateway REST plugin DLLs (`net8.0` or `net10.0`) can be named anything, as long as it is unique within the `Extensions` directory.
 
 4. Restart the AnyCA Gateway REST service.
 
@@ -97,6 +98,7 @@ TODO Requirements is a required section
 
     * **OrganizationId** - If you know your organization's ID in nameshield, you can supply that here and that will be used as the organization regardless of what values exist in the request or the Organization field
     * **Organization** - If OrganizationId is empty, and an organization name is provided here, the Nameshield gateway will use that name to do organization lookups when enrolling. If neither OrganizationId nor Organization is supplied, the gateway will use whatever is in the O= field of the request subject.
+    * **Lifetime** - REQUIRED:The lifetime of the certificate to be issued. This should be a string in the format recognized by Nameshield (e.g. 1 year, etc.)
 
 ## License
 
