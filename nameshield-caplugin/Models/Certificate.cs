@@ -62,6 +62,14 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Models
 		[JsonPropertyName("pem")]
 		[JsonProperty("pem")]
 		public string Pem { get; set; }
+
+		[JsonPropertyName("validity_end")]
+		[JsonProperty("validity_end")]
+		public string ValidityEnd { get; set; }
+
+		[JsonPropertyName("can_renew_at")]
+		[JsonProperty("can_renew_at")]
+		public string CanRenewAt { get; set; }
 	}
 
 	public class CertificateRelationships

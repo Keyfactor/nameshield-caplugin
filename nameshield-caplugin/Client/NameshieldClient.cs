@@ -98,7 +98,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield.Client
 
 		public async Task<GetCertificateResponse> GetCertificate(string ID)
 		{
-			var response = await RestClient.GetAsync($"ssl/v2/certificates/{ID}?fields[certificate]=status,serial,pem");
+			var response = await RestClient.GetAsync($"ssl/v2/certificates/{ID}?fields[certificate]=status,serial,pem,validity_end,can_renew_at");
 			if (response.IsSuccessStatusCode)
 			{
 				string responseContent = await response.Content.ReadAsStringAsync();

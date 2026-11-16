@@ -117,12 +117,12 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 					throw new Exception($"Cannot find prior certificate with serial number {priorCertSnString}.");
 				}
 
-				string orderId = priorCertReqID.Split('-')[0];
+				string certId = priorCertReqID.Split('-')[0];
 
-				var orderResponse = Task.Run(async () => await client.GetOrderDetails(orderId)).Result;
-				if (orderResponse.Order.Attributes.CanRenewAt != null)
+				var certResponse = Task.Run(async () => await client.GetCertificate(certId)).Result;
+				if (certResponse.Certificate.Attributes.CanRenewAt != null)
 				{
-					DateTime canRenewDT = DateTime.Parse(orderResponse.Order.Attributes.CanRenewAt);
+					DateTime canRenewDT = DateTime.Parse(certResponse.Certificate.Attributes.CanRenewAt);
 					if (canRenewDT < DateTime.UtcNow)
 					{
 						orderAction = "renew";
@@ -134,7 +134,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 				}
 
 				request.data.relationships.certificate.data.type = "certificate";
-				request.data.relationships.certificate.data.id = priorCertReqID.Split('-')[1];
+				request.data.relationships.certificate.data.id = certId;
 			}
 
 			request.data.attributes.action = orderAction;
