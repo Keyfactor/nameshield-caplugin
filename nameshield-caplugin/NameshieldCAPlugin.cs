@@ -163,19 +163,20 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 				_logger.LogTrace($"Cert request submitted successfully but not delivered, will be picked up by a fugure sync once it is issued.");
 				return new EnrollmentResult
 				{
-					CARequestID = response.Order.Id,
+					CARequestID = response.Order.Relationships.Certificate.Data.id,
 					Status = (int)EndEntityStatus.EXTERNALVALIDATION,
 					StatusMessage = "Certificate is pending issuance and will be picked up by a future sync."
 				};
 			}
 			_logger.LogTrace($"Certificate enrolled successfully");
 
-			var reqId = $"{response.Order.Id}-{response.Order.Relationships.Certificate.Data.id}";
+			//Use placeholder for the serial number part of the req ID, which will be retrieved by GetSingleRecord.
+			var reqId = $"{response.Order.Relationships.Certificate.Data.id}-XXXXXXXX";
 			var cert = GetSingleRecord(reqId).Result;
 			
 			return new EnrollmentResult
 			{
-				CARequestID = reqId,
+				CARequestID = cert.CARequestID,
 				Certificate = cert.Certificate,
 				Status = cert.Status,
 				StatusMessage = $"Successfully enrolled for certificate {subject}"
@@ -233,7 +234,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 				_logger.LogWarning($"Order {caRequestID} is still awaiting delivery.");
 				throw new Exception($"Unable to retrieve certificate for order {caRequestID} as it is still awaiting delivery. The certificate will be picked up by a future sync once it is issued.");
 			}
-			string certId = idParts[1];
+			string certId = idParts[0];
 			var cert = Task.Run(async () => await client.GetCertificate(certId)).Result;
 			var certProduct = Task.Run(async () => await client.GetCertificateProduct(certId)).Result;
 
@@ -241,7 +242,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 
 			return new AnyCAPluginCertificate()
 			{
-				CARequestID = caRequestID,
+				CARequestID = $"{cert.Certificate.Id}-{cert.Certificate.Attributes.Serial}",
 				ProductID = certProduct.CertificateProduct.Attributes.Name,
 				Status = status,
 				Certificate = cert.Certificate.Attributes.Pem,
@@ -323,10 +324,21 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 				var certObj = Task.Run(async () => await client.GetCertificate(cert.Id)).Result;
 				var certProduct = Task.Run(async () => await client.GetCertificateProduct(cert.Id)).Result;
 				int status = ConvertToKeyfactorStatus(cert.Attributes.Status, cert.Id);
+				if (status == (int)EndEntityStatus.EXTERNALVALIDATION)
+				{
+					_logger.LogInformation($"Cert request with cert ID {cert.Id} is still waiting for issuance.");
+					continue;
+				}
+				if (string.IsNullOrEmpty(cert.Attributes.Pem))
+				{
+					_logger.LogInformation($"Cert request with cert ID {cert.Id} has no PEM data. Skipping...");
+					continue;
+				}
+				
 				var newCert = new AnyCAPluginCertificate()
 				{
-					CARequestID = $"{certObj.Certificate.Relationships.Order.Data.id}-{cert.Id}",
-					OldCARequestID = certObj.Certificate.Relationships.Order.Data.id,
+					CARequestID = $"{cert.Id}-{cert.Attributes.Serial}",
+					OldCARequestID = $"{cert.Id}",
 					ProductID = certProduct.CertificateProduct.Attributes.Name,
 					Status = status,
 					Certificate = cert.Attributes.Pem,
