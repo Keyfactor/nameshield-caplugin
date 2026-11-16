@@ -51,7 +51,7 @@ The Nameshield AnyCA Gateway REST plugin is open source and community supported,
 
 ## Requirements
 
-TODO Requirements is a required section
+
 
 ## Installation
 
