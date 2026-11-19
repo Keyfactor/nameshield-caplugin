@@ -1,6 +1,7 @@
 ﻿using Keyfactor.AnyGateway.Extensions;
 using Keyfactor.Extensions.CAPlugin.Nameshield.API;
 using Keyfactor.Extensions.CAPlugin.Nameshield.Client;
+using Keyfactor.Extensions.CAPlugin.Nameshield.Models;
 using Keyfactor.Logging;
 using Keyfactor.PKI.Enums.EJBCA;
 
@@ -36,7 +37,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			_config = JsonConvert.DeserializeObject<NameshieldConfig>(rawConfig);
 		}
 
-		public async Task<EnrollmentResult> Enroll(string csr, string subject, Dictionary<string, string[]> san, EnrollmentProductInfo productInfo, RequestFormat requestFormat, EnrollmentType enrollmnentType)
+		public async Task<EnrollmentResult> Enroll(string csr, string subject, Dictionary<string, string[]> san, EnrollmentProductInfo productInfo, RequestFormat requestFormat, EnrollmentType enrollmentType)
 		{
 			_logger.MethodEntry(LogLevel.Debug);
 			NameshieldClient client = NameshieldClient.InitializeClient(_config);
@@ -93,16 +94,50 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			{
 				throw new Exception($"No organization provided in attributes or subject that matches an organization in the Nameshield account");
 			}
+			var lifetime = productInfo.ProductParameters[Constants.Config.Template.LIFETIME];
 
 			CertificateRequest request = new CertificateRequest();
 			request.data.type = "order";
-			request.data.attributes.action = "create";
+			
 			request.data.attributes.csr = csr;
-			request.data.attributes.duration = "1 year";
+			request.data.attributes.duration = lifetime;
 			request.data.relationships.product.data.type = "product";
 			request.data.relationships.product.data.id = productId;
 			request.data.relationships.organization.data.type = "organization";
 			request.data.relationships.organization.data.id = orgId;
+
+			string orderAction = "create";
+			// Determine if we should do a renew or a reissue
+			if (enrollmentType == EnrollmentType.RenewOrReissue)
+			{
+				string priorCertSnString = productInfo.ProductParameters["PriorCertSN"];
+				var priorCertReqID = await _certificateDataReader.GetRequestIDBySerialNumber(priorCertSnString);
+				if (string.IsNullOrEmpty(priorCertReqID))
+				{
+					throw new Exception($"Cannot find prior certificate with serial number {priorCertSnString}.");
+				}
+
+				string certId = priorCertReqID.Split('-')[0];
+
+				var certResponse = Task.Run(async () => await client.GetCertificate(certId)).Result;
+				if (certResponse.Certificate.Attributes.CanRenewAt != null)
+				{
+					DateTime canRenewDT = DateTime.Parse(certResponse.Certificate.Attributes.CanRenewAt);
+					if (canRenewDT < DateTime.UtcNow)
+					{
+						orderAction = "renew";
+					}
+					else
+					{
+						orderAction = "reissue";
+					}
+				}
+
+				request.data.relationships.certificate.data.type = "certificate";
+				request.data.relationships.certificate.data.id = certId;
+			}
+
+			request.data.attributes.action = orderAction;
 
 			var response = Task.Run(async () => await client.RequestCertificate(request)).Result;
 
@@ -128,15 +163,17 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 				_logger.LogTrace($"Cert request submitted successfully but not delivered, will be picked up by a fugure sync once it is issued.");
 				return new EnrollmentResult
 				{
-					CARequestID = response.Order.Id,
+					CARequestID = response.Order.Relationships.Certificate.Data.id,
 					Status = (int)EndEntityStatus.EXTERNALVALIDATION,
 					StatusMessage = "Certificate is pending issuance and will be picked up by a future sync."
 				};
 			}
 			_logger.LogTrace($"Certificate enrolled successfully");
 
-			var cert = GetSingleRecord(response.Order.Relationships.Certificate.Data.id).Result;
-
+			//Use placeholder for the serial number part of the req ID, which will be retrieved by GetSingleRecord.
+			var reqId = $"{response.Order.Relationships.Certificate.Data.id}-XXXXXXXX";
+			var cert = GetSingleRecord(reqId).Result;
+			
 			return new EnrollmentResult
 			{
 				CARequestID = cert.CARequestID,
@@ -191,15 +228,21 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 		public async Task<AnyCAPluginCertificate> GetSingleRecord(string caRequestID)
 		{
 			NameshieldClient client = NameshieldClient.InitializeClient(_config);
+			var idParts = caRequestID.Split('-').ToList();
+			if (idParts.Count == 1)
+			{
+				_logger.LogWarning($"Order {caRequestID} is still awaiting delivery.");
+				throw new Exception($"Unable to retrieve certificate for order {caRequestID} as it is still awaiting delivery. The certificate will be picked up by a future sync once it is issued.");
+			}
+			string certId = idParts[0];
+			var cert = Task.Run(async () => await client.GetCertificate(certId)).Result;
+			var certProduct = Task.Run(async () => await client.GetCertificateProduct(certId)).Result;
 
-			var cert = Task.Run(async () => await client.GetCertificate(caRequestID)).Result;
-			var certProduct = Task.Run(async () => await client.GetCertificateProduct(caRequestID)).Result;
-
-			int status = ConvertToKeyfactorStatus(cert.Certificate.Attributes.Status, caRequestID);
+			int status = ConvertToKeyfactorStatus(cert.Certificate.Attributes.Status, certId);
 
 			return new AnyCAPluginCertificate()
 			{
-				CARequestID = caRequestID,
+				CARequestID = $"{cert.Certificate.Id}-{cert.Certificate.Attributes.Serial}",
 				ProductID = certProduct.CertificateProduct.Attributes.Name,
 				Status = status,
 				Certificate = cert.Certificate.Attributes.Pem,
@@ -223,6 +266,13 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 					Comments = "If OrganizationId is empty, and an organization name is provided here, the Nameshield gateway will use that name to do organization lookups when enrolling. If neither OrganizationId nor Organization is supplied, the gateway will use whatever is in the O= field of the request subject.",
 					Hidden = false,
 					DefaultValue = "",
+					Type = "String"
+				},
+				[Constants.Config.Template.LIFETIME] = new PropertyConfigInfo()
+				{
+					Comments = "REQUIRED:The lifetime of the certificate to be issued. This should be a string in the format recognized by Nameshield (e.g. 1 year, etc.)",
+					Hidden = false,
+					DefaultValue = "1 year",
 					Type = "String"
 				}
 			};
@@ -271,11 +321,24 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 
 			foreach (var cert in certs.Certificates)
 			{
+				var certObj = Task.Run(async () => await client.GetCertificate(cert.Id)).Result;
 				var certProduct = Task.Run(async () => await client.GetCertificateProduct(cert.Id)).Result;
 				int status = ConvertToKeyfactorStatus(cert.Attributes.Status, cert.Id);
+				if (status == (int)EndEntityStatus.EXTERNALVALIDATION)
+				{
+					_logger.LogInformation($"Cert request with cert ID {cert.Id} is still waiting for issuance.");
+					continue;
+				}
+				if (string.IsNullOrEmpty(cert.Attributes.Pem))
+				{
+					_logger.LogInformation($"Cert request with cert ID {cert.Id} has no PEM data. Skipping...");
+					continue;
+				}
+				
 				var newCert = new AnyCAPluginCertificate()
 				{
-					CARequestID = cert.Id,
+					CARequestID = $"{cert.Id}-{cert.Attributes.Serial}",
+					OldCARequestID = $"{cert.Id}",
 					ProductID = certProduct.CertificateProduct.Attributes.Name,
 					Status = status,
 					Certificate = cert.Attributes.Pem,
@@ -310,19 +373,38 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 
 			var productList = Task.Run(async () => await localClient.ListProducts()).Result;
 
-			bool foundProduct = false;
+			Product foundProduct = null;
 			foreach (var product in productList.Products)
 			{
 				if (string.Equals(product.Attributes.Name, productInfo.ProductID, StringComparison.OrdinalIgnoreCase))
 				{
-					foundProduct = true;
+					foundProduct = product;
 					break;
 				}
 			}
 
-			if (!foundProduct)
+			if (foundProduct == null)
 			{
 				throw new Exception($"Product ID {productInfo.ProductID} was not found in the list of valid products.");
+			}
+			string lifetime = productInfo.ProductParameters[Constants.Config.Template.LIFETIME];
+			if (string.IsNullOrEmpty(lifetime))
+			{
+				throw new Exception($"Product ID {productInfo.ProductID} is missing a required lifetime value");
+			}
+
+			bool allowedDuration = false;
+			foreach (var duration in foundProduct.Attributes.Durations)
+			{
+				if (string.Equals(duration, lifetime, StringComparison.OrdinalIgnoreCase))
+				{
+					allowedDuration = true;
+					break;
+				}
+			}
+			if (!allowedDuration)
+			{
+				throw new Exception($"Product ID {productInfo.ProductID} has an invalid lifetime value {lifetime}. Valid values for this product are: {string.Join(',', foundProduct.Attributes.Durations)}");
 			}
 		}
 
@@ -336,7 +418,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 			return string.Empty;
 		}
 
-		private static int ConvertToKeyfactorStatus(string status, string sslId)
+		private static int ConvertToKeyfactorStatus(string status, string certId)
 		{
 			switch (status.ToUpper())
 			{
@@ -353,7 +435,7 @@ namespace Keyfactor.Extensions.CAPlugin.Nameshield
 					return (int)EndEntityStatus.REVOKED;
 
 				default:
-					throw new Exception($"Request ID {sslId} has unknown status {status}");
+					throw new Exception($"Request ID {certId} has unknown status {status}");
 			}
 		}
 
